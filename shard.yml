@@ -1,0 +1,17 @@
+name: htq
+version: 0.1.0
+
+authors:
+  - your-name-here <your-email-here>
+
+targets:
+  htq:
+    main: src/htq.cr
+
+crystal: 0.29.0
+
+dependencies:
+  myhtml:
+    github: 'kostya/myhtml'
+
+license: MIT
