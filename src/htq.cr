@@ -8,6 +8,7 @@ module HTQ
     property pretty = false
     property css_queries = [] of String
     property plaintext = false
+    property attrs = [] of String
 
   end
 
@@ -28,6 +29,10 @@ module HTQ
 
     parser.on("-t", "--text", "Print text content") do
       config.plaintext = true
+    end
+
+    parser.on("-a ATTR", "--attr=ATTR", "Extract an attribute value") do |attr|
+      config.attrs.push(attr)
     end
 
     parser.on("-h", "--help", "Print help message") do
@@ -56,6 +61,12 @@ module HTQ
         dom.css(query).each do |el|
           if config.pretty
             puts el.to_pretty_html
+          elsif ! config.attrs.empty?
+            config.attrs.each do |attr|
+              if el.attributes.has_key?(attr)
+                puts el.attributes[attr]
+              end
+            end
           elsif config.plaintext
             puts el.inner_text
           else
