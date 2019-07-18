@@ -7,6 +7,7 @@ module HTQ
 
     property pretty = false
     property css_queries = [] of String
+    property plaintext = false
 
   end
 
@@ -23,6 +24,10 @@ module HTQ
 
     parser.on("-p", "--pretty", "Pretty print output") do
       config.pretty = true
+    end
+
+    parser.on("-t", "--text", "Print text content") do
+      config.plaintext = true
     end
 
     parser.on("-h", "--help", "Print help message") do
@@ -51,6 +56,8 @@ module HTQ
         dom.css(query).each do |el|
           if config.pretty
             puts el.to_pretty_html
+          elsif config.plaintext
+            puts el.inner_text
           else
             print el.to_html
           end

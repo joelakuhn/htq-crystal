@@ -15,6 +15,7 @@ shards build --release
 usage: htq [files] [options]
     -c QUERY, --css=QUERY            Specify a css query
     -p, --pretty                     Pretty print output
+    -t, --text                       Print text content
     -h, --help                       Print help message
 ```
 
