@@ -73,7 +73,7 @@ module HTQ
         elsif options.plaintext
           puts el.inner_text
         else
-          print el.to_html
+          puts el.to_html
         end
       end
     end
@@ -88,6 +88,8 @@ module HTQ
         result.each do |node|
           if options.pretty
             puts node.to_xml(indent: 2)
+          elsif options.plaintext
+            puts node.content
           else
             puts node.to_s()
           end
