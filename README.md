@@ -1,6 +1,6 @@
 # HTQ
 
-HTQ is a simple tool for extracting elements from html streams using CSS3 selectors. It uses the incomarable (lexborisov/myhtml)[https://github.com/lexborisov/myhtml] wrapper (kostya/myhtml)[https://github.com/kostya/myhtml].
+HTQ is a simple tool for extracting elements from html streams using CSS3 selectors and/or XPath queries. It uses the incomarable (lexborisov/myhtml)[https://github.com/lexborisov/myhtml] wrapper (kostya/myhtml)[https://github.com/kostya/myhtml].
 
 ## Building
 
@@ -13,7 +13,8 @@ shards build --release
 
 ```
 usage: htq [files] [options]
-    -c QUERY, --css=QUERY            Specify a css query
+    -c QUERY, --css=QUERY            Specify a css selector
+    -x XPATH, --xpath=XPATH          Specify an XPATH selector
     -p, --pretty                     Pretty print output
     -t, --text                       Print text content
     -a ATTR, --attr=ATTR             Extract an attribute value
@@ -29,4 +30,6 @@ $ echo "<div><p>Lorem Ipsum</p></div>" | bin/htq -p -c p
 <p>
   Lorem Ipsum
 </p>
+$ echo "<div><p>Lorem Ipsum</p></div>" | bin/htq -x //p -t
+Lorem Ipsum
 ```
