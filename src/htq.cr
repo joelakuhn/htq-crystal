@@ -1,38 +1,44 @@
 require "myhtml"
 require "option_parser"
+require "xml"
 
 module HTQ
 
-  class Config
+  class Options
 
     property pretty = false
     property css_queries = [] of String
     property plaintext = false
     property attrs = [] of String
+    property xpaths = [] of String
 
   end
 
-  config = Config.new()
+  options = Options.new()
   files = [] of String
 
   OptionParser.parse(ARGV) do |parser|
 
     parser.banner = "usage: htq [files] [options]"
 
-    parser.on("-c QUERY", "--css=QUERY", "Specify a css query") do |query|
-      config.css_queries.push(query)
+    parser.on("-c QUERY", "--css=QUERY", "Specify a css selector") do |query|
+      options.css_queries.push(query)
+    end
+
+    parser.on("-x XPATH", "--xpath=XPATH", "Specify an XPATH selector") do |xpath|
+      options.xpaths.push(xpath)
     end
 
     parser.on("-p", "--pretty", "Pretty print output") do
-      config.pretty = true
+      options.pretty = true
     end
 
     parser.on("-t", "--text", "Print text content") do
-      config.plaintext = true
+      options.plaintext = true
     end
 
     parser.on("-a ATTR", "--attr=ATTR", "Extract an attribute value") do |attr|
-      config.attrs.push(attr)
+      options.attrs.push(attr)
     end
 
     parser.on("-h", "--help", "Print help message") do
@@ -46,43 +52,75 @@ module HTQ
 
   end
 
-  def self.process_input(input, config)
+  def self.prettify(input, options)
+    dom = Myhtml::Parser.new(input)
+    puts dom.to_pretty_html
+  end
+
+  def self.process_css_queries(input, options)
 
     dom = Myhtml::Parser.new(input)
-
-    if config.css_queries.empty? && config.pretty
-
-      puts dom.to_pretty_html
-
-    else
-
-      config.css_queries.each do |query|
-
-        dom.css(query).each do |el|
-          if config.pretty
-            puts el.to_pretty_html
-          elsif ! config.attrs.empty?
-            config.attrs.each do |attr|
-              if el.attributes.has_key?(attr)
-                puts el.attributes[attr]
-              end
+    options.css_queries.each do |query|
+      dom.css(query).each do |el|
+        if options.pretty
+          puts el.to_pretty_html
+        elsif ! options.attrs.empty?
+          options.attrs.each do |attr|
+            if el.attributes.has_key?(attr)
+              puts el.attributes[attr]
             end
-          elsif config.plaintext
-            puts el.inner_text
+          end
+        elsif options.plaintext
+          puts el.inner_text
+        else
+          print el.to_html
+        end
+      end
+    end
+  end
+
+  def self.process_xpath_queries(input, options)
+    dom = XML.parse_html(input, XML::HTMLParserOptions::RECOVER)
+
+    options.xpaths.each do |xpath|
+      result = dom.xpath(xpath)
+      if result.is_a?(XML::NodeSet)
+        result.each do |node|
+          if options.pretty
+            puts node.to_xml(indent: 2)
           else
-            print el.to_html
+            puts node.to_s()
           end
         end
-
+      else
+        puts result
       end
+    end
+  end
 
+  def self.process_input(input, options)
+
+    unless options.xpaths.empty?
+      self.process_xpath_queries(input, options)
+    end
+
+    unless options.css_queries.empty?
+      self.process_css_queries(input, options)
+    end
+
+    if options.xpaths.empty? && options.css_queries.empty?
+      if options.pretty
+        self.prettify(input, options)
+      else
+        puts input
+      end
     end
 
   end
 
   if files.empty?
 
-    process_input(STDIN.gets_to_end(), config)
+    process_input(STDIN.gets_to_end(), options)
 
   else
 
@@ -93,7 +131,7 @@ module HTQ
         else
           input = File.read(file)
         end
-        process_input(input, config)
+        process_input(input, options)
       rescue exception
         STDERR.puts exception
       end
