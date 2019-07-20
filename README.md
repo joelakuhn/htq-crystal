@@ -19,6 +19,7 @@ usage: htq [css_query] [options] [file ...]
     -t, --text                       Print text content
     -a ATTR, --attr=ATTR             Extract an attribute value
     -0, --print0                     Separate output by NULL
+    -l, --list-files                 List matching files without matches
     -h, --help                       Print help message
 ```
 

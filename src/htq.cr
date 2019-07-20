@@ -12,6 +12,7 @@ module HTQ
     property attrs = [] of String
     property xpaths = [] of String
     property print0 = false
+    property list_files = false
 
   end
 
@@ -46,6 +47,10 @@ module HTQ
       options.print0 = true
     end
 
+    parser.on("-l", "--list-files", "List matching files without matches") do
+      options.list_files = true;
+    end
+
     parser.on("-h", "--help", "Print help message") do
       puts parser.to_s
       exit();
@@ -78,11 +83,18 @@ module HTQ
     puts dom.to_pretty_html
   end
 
-  def self.process_css_queries(input, options)
+  def self.process_css_queries(file, input, options)
 
     dom = Myhtml::Parser.new(input)
     options.css_queries.each do |query|
-      dom.css(query).each do |el|
+      result = dom.css(query)
+
+      if options.list_files && result.any?
+        emit file, options
+        return
+      end
+
+      result.each do |el|
         if options.pretty
           emit el.to_pretty_html, options
         elsif ! options.attrs.empty?
@@ -100,11 +112,19 @@ module HTQ
     end
   end
 
-  def self.process_xpath_queries(input, options)
+  def self.process_xpath_queries(file, input, options)
     dom = XML.parse_html(input, XML::HTMLParserOptions::RECOVER)
 
     options.xpaths.each do |xpath|
       result = dom.xpath(xpath)
+
+      if options.list_files
+        if (result.is_a?(XML::NodeSet) && result.any?) || ! result.is_a?(XML::NodeSet)
+          emit file, options
+          return
+        end
+      end
+
       if result.is_a?(XML::NodeSet)
         result.each do |node|
           if options.pretty
@@ -121,14 +141,14 @@ module HTQ
     end
   end
 
-  def self.process_input(input, options)
+  def self.process_input(file, input, options)
 
     unless options.xpaths.empty?
-      self.process_xpath_queries(input, options)
+      self.process_xpath_queries(file, input, options)
     end
 
     unless options.css_queries.empty?
-      self.process_css_queries(input, options)
+      self.process_css_queries(file, input, options)
     end
 
     if options.xpaths.empty? && options.css_queries.empty?
@@ -143,7 +163,7 @@ module HTQ
 
   if files.empty?
 
-    process_input(STDIN.gets_to_end(), options)
+    process_input("STDIN", STDIN.gets_to_end(), options)
 
   else
 
@@ -154,7 +174,7 @@ module HTQ
         else
           input = File.read(file)
         end
-        process_input(input, options)
+        process_input(file, input, options)
       rescue exception
         STDERR.puts exception
       end
