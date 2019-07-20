@@ -51,6 +51,12 @@ module HTQ
       options.list_files = true;
     end
 
+    parser.invalid_option do |option|
+      puts "#{option} is not a valid option\n\n"
+      puts parser.to_s
+      exit();
+    end
+
     parser.on("-h", "--help", "Print help message") do
       puts parser.to_s
       exit();
