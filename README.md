@@ -12,7 +12,7 @@ shards build --release
 ## Usage
 
 ```
-usage: htq [files] [options]
+usage: htq [css_query] [options] [file ...]
     -c QUERY, --css=QUERY            Specify a css selector
     -x XPATH, --xpath=XPATH          Specify an XPATH selector
     -p, --pretty                     Pretty print output
@@ -24,9 +24,9 @@ usage: htq [files] [options]
 ## Examples
 
 ```
-$ echo "<div><p>Lorem Ipsum</p></div>" | bin/htq -c p
+$ echo "<div><p>Lorem Ipsum</p></div>" | bin/htq p
 <p>Lorem Ipsum</p>
-$ echo "<div><p>Lorem Ipsum</p></div>" | bin/htq -p -c p
+$ echo "<div><p>Lorem Ipsum</p></div>" | bin/htq p -p
 <p>
   Lorem Ipsum
 </p>

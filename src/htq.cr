@@ -19,7 +19,7 @@ module HTQ
 
   OptionParser.parse(ARGV) do |parser|
 
-    parser.banner = "usage: htq [files] [options]"
+    parser.banner = "usage: htq [css_query] [options] [file ...]"
 
     parser.on("-c QUERY", "--css=QUERY", "Specify a css selector") do |query|
       options.css_queries.push(query)
@@ -47,7 +47,15 @@ module HTQ
     end
 
     parser.unknown_args do |positional_args|
+      if options.css_queries.empty? && options.xpaths.empty?
+        options.css_queries.push(positional_args.shift())
+      end
       files = positional_args
+    end
+
+    if ARGV.empty?
+      puts parser.to_s
+      exit();
     end
 
   end
