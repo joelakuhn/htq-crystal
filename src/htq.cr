@@ -31,16 +31,16 @@ module HTQ
       options.xpaths.push(xpath)
     end
 
+    parser.on("-a ATTR", "--attr=ATTR", "Extract an attribute value") do |attr|
+      options.attrs.push(attr)
+    end
+
     parser.on("-p", "--pretty", "Pretty print output") do
       options.pretty = true
     end
 
     parser.on("-t", "--text", "Print text content") do
       options.plaintext = true
-    end
-
-    parser.on("-a ATTR", "--attr=ATTR", "Extract an attribute value") do |attr|
-      options.attrs.push(attr)
     end
 
     parser.on("-0", "--print0", "Separate output by NULL") do
