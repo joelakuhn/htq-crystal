@@ -11,6 +11,7 @@ module HTQ
     property plaintext = false
     property attrs = [] of String
     property xpaths = [] of String
+    property print0 = false
 
   end
 
@@ -41,6 +42,10 @@ module HTQ
       options.attrs.push(attr)
     end
 
+    parser.on("-0", "--print0", "Separate output by NULL") do
+      options.print0 = true
+    end
+
     parser.on("-h", "--help", "Print help message") do
       puts parser.to_s
       exit();
@@ -60,6 +65,14 @@ module HTQ
 
   end
 
+  def self.emit(output, options)
+    if options.print0
+      print "#{output}\0"
+    else
+      puts output
+    end
+  end
+
   def self.prettify(input, options)
     dom = Myhtml::Parser.new(input)
     puts dom.to_pretty_html
@@ -71,17 +84,17 @@ module HTQ
     options.css_queries.each do |query|
       dom.css(query).each do |el|
         if options.pretty
-          puts el.to_pretty_html
+          emit el.to_pretty_html, options
         elsif ! options.attrs.empty?
           options.attrs.each do |attr|
             if el.attributes.has_key?(attr)
-              puts el.attributes[attr]
+              emit el.attributes[attr], options
             end
           end
         elsif options.plaintext
-          puts el.inner_text
+          emit el.inner_text, options
         else
-          puts el.to_html
+          emit el.to_html, options
         end
       end
     end
@@ -95,15 +108,15 @@ module HTQ
       if result.is_a?(XML::NodeSet)
         result.each do |node|
           if options.pretty
-            puts node.to_xml(indent: 2)
+            emit node.to_xml(indent: 2), options
           elsif options.plaintext
-            puts node.content
+            emit node.content, options
           else
-            puts node.to_s()
+            emit node.to_s(), options
           end
         end
       else
-        puts result
+        emit result, options
       end
     end
   end

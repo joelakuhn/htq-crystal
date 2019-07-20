@@ -18,6 +18,7 @@ usage: htq [css_query] [options] [file ...]
     -p, --pretty                     Pretty print output
     -t, --text                       Print text content
     -a ATTR, --attr=ATTR             Extract an attribute value
+    -0, --print0                     Separate output by NULL
     -h, --help                       Print help message
 ```
 
