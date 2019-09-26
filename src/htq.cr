@@ -13,11 +13,13 @@ module HTQ
     property xpaths = [] of String
     property print0 = false
     property list_files = false
+    property nonl = false
 
   end
 
   options = Options.new()
   files = [] of String
+  @@puts_lock = Mutex.new()
 
   OptionParser.parse(ARGV) do |parser|
 
@@ -51,6 +53,10 @@ module HTQ
       options.list_files = true;
     end
 
+    parser.on("-n", "--nonl", "Remove newlines from matches") do
+      options.nonl = true;
+    end
+
     parser.invalid_option do |option|
       puts "#{option} is not a valid option\n\n"
       puts parser.to_s
@@ -77,16 +83,21 @@ module HTQ
   end
 
   def self.emit(output, options)
-    if options.print0
-      print "#{output}\0"
-    else
-      puts output
+    if options.nonl
+      output = output.gsub(/\r?\n/, " ")
+    end
+    @@puts_lock.synchronize do
+      if options.print0
+        print "#{output}\0"
+      else
+        puts output
+      end
     end
   end
 
   def self.prettify(input, options)
     dom = Myhtml::Parser.new(input)
-    puts dom.to_pretty_html
+    return dom.to_pretty_html
   end
 
   def self.process_css_queries(file, input, options)
@@ -96,23 +107,22 @@ module HTQ
       result = dom.css(query)
 
       if options.list_files && result.any?
-        emit file, options
-        return
+        return file
       end
 
       result.each do |el|
         if options.pretty
-          emit el.to_pretty_html, options
+          return el.to_pretty_html
         elsif ! options.attrs.empty?
           options.attrs.each do |attr|
             if el.attributes.has_key?(attr)
-              emit el.attributes[attr], options
+              return el.attributes[attr]
             end
           end
         elsif options.plaintext
-          emit el.inner_text, options
+          return el.inner_text
         else
-          emit el.to_html, options
+          return el.to_html
         end
       end
     end
@@ -122,67 +132,77 @@ module HTQ
     dom = XML.parse_html(input, XML::HTMLParserOptions::RECOVER)
 
     options.xpaths.each do |xpath|
-      result = dom.xpath(xpath)
+      result = dom.xpath(xpath, [ { "wp", "http://wordpress.org/export/1.2/" } ])
 
       if options.list_files
         if (result.is_a?(XML::NodeSet) && result.any?) || ! result.is_a?(XML::NodeSet)
-          emit file, options
-          return
+          return file;
         end
       end
 
       if result.is_a?(XML::NodeSet)
         result.each do |node|
           if options.pretty
-            emit node.to_xml(indent: 2), options
+            return node.to_xml(indent: 2);
           elsif options.plaintext
-            emit node.content, options
+            return node.content;
           else
-            emit node.to_s(), options
+            return node.to_s();
           end
         end
       else
-        emit result, options
+        return result.to_s;
       end
     end
   end
 
-  def self.process_input(file, input, options)
+  def self.process_input(channel, file, input, options)
 
     unless options.xpaths.empty?
-      self.process_xpath_queries(file, input, options)
+      channel.send self.process_xpath_queries(file, input, options)
     end
 
     unless options.css_queries.empty?
-      self.process_css_queries(file, input, options)
+      channel.send self.process_css_queries(file, input, options)
     end
 
     if options.xpaths.empty? && options.css_queries.empty?
       if options.pretty
-        self.prettify(input, options)
+        channel.send prettify(input, options)
       else
-        puts input
+        channel.send input
       end
     end
 
   end
 
+  channel = Channel(String|Nil).new
+
   if files.empty?
 
-    process_input("STDIN", STDIN.gets_to_end(), options)
+    process_input(channel, "STDIN", STDIN.gets_to_end(), options)
 
   else
 
     files.each do |file|
-      begin
-        if file == "-"
-          input = STDIN.gets_to_end()
-        else
-          input = File.read(file)
+      spawn do
+        begin
+          if file == "-"
+            input = STDIN.gets_to_end()
+          else
+            input = File.read(file)
+          end
+          process_input(channel, file, input, options)
+        rescue exception
+          STDERR.puts exception
         end
-        process_input(file, input, options)
-      rescue exception
-        STDERR.puts exception
+      end
+    end
+
+    files.size.times do
+      result = channel.receive()
+      unless result.nil?
+        emit(result, options)
       end
     end
 
